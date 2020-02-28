@@ -40,24 +40,36 @@ router.post('/stockinfo', function(req, res, next) {
           var ThirdPrice = SecondPrice.split('\n');
           var s_price = ThirdPrice[0];
           //해당 주식 거래량
-          var s_volume = $('.no_info .blind').html();
-          var d_volume = $('.blind').html();
-          /*var trList = [];
-          $('.no_today .blind').each(function(i){
-            trList[i] = {
-              volume: $(this).find('td').html()
-            };
-            console.log("data",trList);
-          });*/
 
+
+
+
+          var s_data = new Array();
+          $('.no_info tbody tr td .blind').each(function(i){
+            var link = $(this);
+            var text = link.text().trim();
+            s_data[i] = text;
+            console.log(text);
+          });
+          console.log("s_data: ", s_data);
+          var s_yesterday = s_data[0]; //전일가
+          var s_highvalue = s_data[1]; //고가
+          var s_volume = s_data[3]; //거래량
+          var s_startvalue = s_data[4]; //시초가
+          var s_lowvalue = s_data[5]; //저가
+          var s_volumevalue = s_data[6]; //거래대금
           console.log('s_name: ', s_name);
           console.log('s_price: ', s_price);
-          console.log("s_volume: ", s_volume);
-          console.log("d_volume: ", d_volume);
           //.then()으로 넘길 데이터
           var s_data = {
             s_name: s_name,
-            s_price: s_price
+            s_price: s_price,
+            s_yesterday: s_yesterday,
+            s_highvalue: s_highvalue,
+            s_lowvalue: s_lowvalue,
+            s_startvalue: s_startvalue,
+            s_volume: s_volume,
+            s_volumevalue: s_volumevalue
           };
           resolve(s_data);
         }
@@ -71,7 +83,13 @@ router.post('/stockinfo', function(req, res, next) {
     res.render('stockinfo', {
        title: 'stockinfo',
        s_name: s_data.s_name,
-       s_price: s_data.s_price
+       s_price: s_data.s_price,
+       s_yesterday: s_data.s_yesterday,
+       s_highvalue: s_data.s_highvalue,
+       s_lowvalue: s_data.s_lowvalue,
+       s_startvalue: s_data.s_startvalue,
+       s_volume: s_data.s_volume,
+       s_volumevalue: s_data.s_volumevalue
      });
     /*hn = {
       'rcode': 'ok',
