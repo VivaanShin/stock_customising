@@ -1,0 +1,21 @@
+//web에서 유저에게 입력받은 종목코드로 네이버 증권에 접속하여 해당 주식의 현재 주가 데이터 받아오는 코드
+
+var code = "005930"
+
+function get_stockinfo(code){
+  console.log("code: ",code);
+  var url = "https://finance.naver.com/item/main.nhn?code=";
+  request.get(url+code, function(error, response, html){
+    if(error){
+      throw error;
+    }
+    var $ = cheerio.load(html);
+    var FirstPrice = $('.no_today').text().trim();
+    var SecondPrice = FirstPrice.replace(",","");
+    var ThirdPrice = SecondPrice.split('\n');
+    var price = ThirdPrice[0];
+    console.log("price: ", price);
+  });
+};
+
+get_stockinfo(code);
