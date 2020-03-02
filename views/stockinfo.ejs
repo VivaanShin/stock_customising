@@ -1,21 +1,27 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title><%= title %></title>
-    <link rel = 'stylesheet' href='stylesheets/style.css' />
-  </head>
-  <body>
-    <h1>주식 코드 조회 결과</h1>
-    <div>주식 종목 안내</div>
-    <form action="result_page" method="post">
-      <h2>종목이름: <%= s_name%></h2>
-      <h3>현재가: <%= s_price%></h3>
-      <h3>전일가: <%= s_yesterday%></h3>
-      <h3>고가: <%= s_highvalue%></h3>
-      <h3>저가: <%= s_lowvalue%></h3>
-      <h3>시초가: <%= s_startvalue%></h3>
-      <h3>거래량: <%= s_volume%></h3>
-      <h3>거래대금: <%= s_volumevalue%>(단위:백만)</h3>
-    </form>
-  </body>
+
+<head>
+  <title><%= title %></title>
+  <link rel='stylesheet' href='stylesheets/style.css' />
+</head>
+
+<body>
+  <h1>주식 코드 조회 결과</h1>
+  <div>주식 종목 안내</div>
+  <h2>종목이름: <%= s_name%></h2>
+  <h3>현재가: <%= s_price%></h3>
+  <h3>전일가: <%= s_yesterday%></h3>
+  <h3>고가: <%= s_highvalue%></h3>
+  <h3>저가: <%= s_lowvalue%></h3>
+  <h3>시초가: <%= s_startvalue%></h3>
+  <h3>거래량: <%= s_volume%></h3>
+  <h3>거래대금: <%= s_volumevalue%>(단위:백만)</h3>
+
+  <form action="/stock_sameindustry" method="get">
+    <h3>동일업종 주가정보를 보시려면 아래 버튼을 눌러주세요</h3>
+    <div><input type="submit" value="동일업종"></div>
+  </form>
+</body>
+
 </html>

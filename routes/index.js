@@ -19,7 +19,7 @@ router.post('/stockinfo', function(req, res, next) {
     stock_code: req.body.stock_code
   }
   const code = data.stock_code;
-  console.log("코드 입력성공");
+  //console.log("코드 입력성공");
   console.log("code: ", code);
   //getData(code);
   // present stock price
@@ -28,7 +28,10 @@ router.post('/stockinfo', function(req, res, next) {
     return new Promise(function(resolve, reject) {
       var base_url = "https://finance.naver.com/item/main.nhn?code=";
       var url = base_url + code;
-      request({url, encoding: null}, function(error, response, html) {
+      request({
+        url,
+        encoding: null
+      }, function(error, response, html) {
         if (response) {
           var htmlDoc = iconv.convert(html).toString();
           var $ = cheerio.load(htmlDoc);
@@ -39,19 +42,15 @@ router.post('/stockinfo', function(req, res, next) {
           var SecondPrice = FirstPrice.replace(",", "");
           var ThirdPrice = SecondPrice.split('\n');
           var s_price = ThirdPrice[0];
-          //해당 주식 거래량
-
-
-
-
+          //해당 주식 상세정보(전일가,고가,거래량,시초가,저가,거래대금)
           var s_data = new Array();
-          $('.no_info tbody tr td .blind').each(function(i){
+          $('.no_info tbody tr td .blind').each(function(i) {
             var link = $(this);
             var text = link.text().trim();
             s_data[i] = text;
-            console.log(text);
+            //console.log(text);
           });
-          console.log("s_data: ", s_data);
+          //console.log("s_data: ", s_data);
           var s_yesterday = s_data[0]; //전일가
           var s_highvalue = s_data[1]; //고가
           var s_volume = s_data[3]; //거래량
@@ -60,6 +59,12 @@ router.post('/stockinfo', function(req, res, next) {
           var s_volumevalue = s_data[6]; //거래대금
           console.log('s_name: ', s_name);
           console.log('s_price: ', s_price);
+
+          //동일업종 비교
+          var sameindustry = new Array();
+          var same_industry = $('.tb_type1 tb_num').html();
+          console.log(same_industry);
+
           //.then()으로 넘길 데이터
           var s_data = {
             s_name: s_name,
@@ -81,16 +86,16 @@ router.post('/stockinfo', function(req, res, next) {
     //console.log("price:", s_price);
     //price = get_stockinfo(code);
     res.render('stockinfo', {
-       title: 'stockinfo',
-       s_name: s_data.s_name,
-       s_price: s_data.s_price,
-       s_yesterday: s_data.s_yesterday,
-       s_highvalue: s_data.s_highvalue,
-       s_lowvalue: s_data.s_lowvalue,
-       s_startvalue: s_data.s_startvalue,
-       s_volume: s_data.s_volume,
-       s_volumevalue: s_data.s_volumevalue
-     });
+      title: 'stockinfo',
+      s_name: s_data.s_name,
+      s_price: s_data.s_price,
+      s_yesterday: s_data.s_yesterday,
+      s_highvalue: s_data.s_highvalue,
+      s_lowvalue: s_data.s_lowvalue,
+      s_startvalue: s_data.s_startvalue,
+      s_volume: s_data.s_volume,
+      s_volumevalue: s_data.s_volumevalue
+    });
     /*hn = {
       'rcode': 'ok',
       'rmg': price
