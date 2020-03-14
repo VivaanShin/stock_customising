@@ -1,5 +1,6 @@
 var request = require("request");
 var cheerio = require('cheerio');
+var cheerioTableparser = require('cheerio-tableparser');
 var express = require('express');
 var router = express.Router();
 var bodyParser = require('body-parser');
@@ -9,8 +10,10 @@ var LocalStrategy = require('passport-local').Strategy;
 var session = require('express-session');
 var flash = require('connect-flash');
 var async = require('async')
-var Iconv = require('iconv').Iconv;
-var iconv = new Iconv('EUC-KR', 'utf-8');
+var iconv = require('iconv-lite');
+var charset = require('charset');
+
+
 
 router.post('/stockinfo', function(req, res, next) {
   console.log(req.body.stock_code);
@@ -30,11 +33,12 @@ router.post('/stockinfo', function(req, res, next) {
       var url = base_url + code;
       request({
         url,
-        encoding: null
-      }, function(error, response, html) {
+        encoding: 'binary'
+      }, function(error, response, body) {
         if (response) {
-          var htmlDoc = iconv.convert(html).toString();
-          var $ = cheerio.load(htmlDoc);
+          const enc = charset(response.headers, body);
+          const i_result = iconv.decode(body, 'euc-kr');
+          var $ = cheerio.load(i_result);
           //해당 주식 이름
           var s_name = $('.wrap_company h2').text();
           //해당 주식 현재가격
@@ -42,6 +46,7 @@ router.post('/stockinfo', function(req, res, next) {
           var SecondPrice = FirstPrice.replace(",", "");
           var ThirdPrice = SecondPrice.split('\n');
           var s_price = ThirdPrice[0];
+
           //해당 주식 상세정보(전일가,고가,거래량,시초가,저가,거래대금)
           var s_data = new Array();
           $('.no_info tbody tr td .blind').each(function(i) {
@@ -61,9 +66,83 @@ router.post('/stockinfo', function(req, res, next) {
           console.log('s_price: ', s_price);
 
           //동일업종 비교
-          var sameindustry = new Array();
-          var same_industry = $('.tb_type1 tb_num').html();
-          console.log(same_industry);
+          //동일업종 이름 전처리 이전 값
+          var bf_sameindustry_name = new Array();
+          var first_industry = $('.section.trade_compare .tb_type1.tb_num thead tr a').each(function(i) {
+            var link = $(this);
+            var text = link.text();
+            //console.log('first', text);
+            bf_sameindustry_name[i] = text;
+          });
+          //console.log("bf_sameindustry_name: ", bf_sameindustry_name);
+
+          //동일업종 코드 값
+          var sameindustry_code = new Array();
+          var first_industry = $('.section.trade_compare .tb_type1.tb_num thead tr a em').each(function(i) {
+            var link = $(this);
+            var text = link.text();
+            sameindustry_code[i] = text;
+          });
+          //console.log("sameindustry_code: ", sameindustry_code);
+
+          //동일업종 이름 값
+          var sameindustry_name = new Array();
+          for (i = 0; i < 5; i++) {
+            if (bf_sameindustry_name[i].indexOf(sameindustry_code[i]) != -1) {
+              var distribute_locate = bf_sameindustry_name[i].indexOf(sameindustry_code[i]);
+              //console.log("locate", distribute_locate);
+              sameindustry_name[i] = bf_sameindustry_name[i].substr(0, distribute_locate);
+              //console.log("종목이름",sameindustry_name[i]);
+
+            } else {
+              console.log("locate not find");
+            }
+          }
+
+          //동일업종 내용 값
+          var sameindustry_price = new Array(); //전일가
+          var sameindustry_daytoday = new Array(); //전일대비
+          var sameindustry_evenrate = new Array(); //등락률
+          var sameindustry_marketvalue = new Array(); //시가총액
+          var sameindustry_foreignrate = new Array(); //외국인보유율
+          var etc_sameindustry = $('.section.trade_compare .tb_type1.tb_num tbody tr td').each(function(i) {
+            var link = $(this);
+            var text = link.text().trim();
+            if (i < 5) {
+              sameindustry_price[i] = text;
+              //console.log("sameindustry_yprice", sameindustry_yprice[i]);
+            } else if (i < 10) {
+              var replacetext = text.replace('\n\t\t\t\t', '');
+              sameindustry_daytoday[i - 5] = replacetext;
+              //console.log("sameindustry_daytoday", sameindustry_daytoday[i-5]);
+            } else if (i < 15) {
+              var replacetext = text.replace('\n\t\t\t\t', '');
+              sameindustry_evenrate[i - 10] = replacetext;
+              //console.log("sameindustry_evenrate", sameindustry_evenrate[i-10]);
+            } else if (i < 20) {
+              sameindustry_marketvalue[i - 15] = text;
+              //console.log("sameindustry_marketvalue", sameindustry_marketvalue[i-15]);
+            } else if (i < 25) {
+              sameindustry_foreignrate[i - 20] = text;
+              //console.log("sameindustry_foreignrate", sameindustry_foreignrate[i-20]);
+            }
+
+          });
+
+
+
+
+          //동일업종 데이터 객체 SameIndustry
+          var si = {
+            name: sameindustry_name,
+            code: sameindustry_code,
+            price: sameindustry_price,
+            daytoday: sameindustry_daytoday,
+            evenrate: sameindustry_evenrate,
+            marketvalue: sameindustry_marketvalue,
+            foreignrate: sameindustry_foreignrate
+          };
+          console.log("동일업종 객체", si);
 
           //.then()으로 넘길 데이터
           var s_data = {
@@ -74,7 +153,15 @@ router.post('/stockinfo', function(req, res, next) {
             s_lowvalue: s_lowvalue,
             s_startvalue: s_startvalue,
             s_volume: s_volume,
-            s_volumevalue: s_volumevalue
+            s_volumevalue: s_volumevalue,
+            si_name: si.name,
+            si_code: si.code,
+            si_price: si.price,
+            si_daytoday: si.daytoday,
+            si_evenrate: si.evenrate,
+            si_marketvalue: si.marketvalue,
+            si_foreignrate: si.foreignrate
+
           };
           resolve(s_data);
         }
@@ -94,7 +181,14 @@ router.post('/stockinfo', function(req, res, next) {
       s_lowvalue: s_data.s_lowvalue,
       s_startvalue: s_data.s_startvalue,
       s_volume: s_data.s_volume,
-      s_volumevalue: s_data.s_volumevalue
+      s_volumevalue: s_data.s_volumevalue,
+      si_name: s_data.si_name,
+      si_code: s_data.si_code,
+      si_price: s_data.si_price,
+      si_daytoday: s_data.si_daytoday,
+      si_evenrate: s_data.si_evenrate,
+      si_marketvalue: s_data.si_marketvalue,
+      si_foreignrate: s_data.si_foreignrate
     });
     /*hn = {
       'rcode': 'ok',
